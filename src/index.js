@@ -37,12 +37,7 @@ app.use(bodyParser.json());
 
 // enabling CORS for all requests
 app.use(
-	cors({
-		origin: [
-			"https://stall-booking.onrender.com",
-			"http://localhost:3000",
-		],
-	})
+	cors()
 );
 // adding morgan to log HTTP requests
 app.use(morgan("combined"));
