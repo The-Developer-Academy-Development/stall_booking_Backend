@@ -39,7 +39,7 @@ app.use(bodyParser.json());
 app.use(
 	cors({
 		origin: [
-			"https://stannington-carnival-frontend.onrender.com",
+			"https://stall-booking.onrender.com",
 			"http://localhost:3000",
 		],
 	})
