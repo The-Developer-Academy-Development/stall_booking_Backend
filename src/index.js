@@ -99,7 +99,7 @@ app.delete(
 	"/users/:id",
 	roleMiddleware(["admin", "super"]),
 	async (req, res) => {
-		await User.deleteOne({ _id: ObjectId(req.params.id) });
+		await User.deleteOne({ _id: new ObjectId(req.params.id) });
 		res.send({ message: "User removed." });
 	}
 );
@@ -108,7 +108,7 @@ app.delete(
 // Update a  User  //
 //-----------------//
 app.put("/users/:id", roleMiddleware(["admin", "super"]), async (req, res) => {
-	await User.findOneAndUpdate({ _id: ObjectId(req.params.id) }, req.body);
+	await User.findOneAndUpdate({ _id: new ObjectId(req.params.id) }, req.body);
 	res.send({ message: "User updated." });
 });
 
@@ -175,7 +175,7 @@ app.get(
 	"/users/:id",
 	roleMiddleware(["finance", "committee", "admin", "super", "allocator"]),
 	async (req, res) => {
-		const user = await User.findOne({ _id: ObjectId(req.params.id) });
+		const user = await User.findOne({ _id: new ObjectId(req.params.id) });
 		if (!user) {
 			return res.sendStatus(404);
 		}
@@ -273,7 +273,7 @@ app.get(
 // Update a Stall  //
 //-----------------//
 app.put("/bookings/:id", async (req, res) => {
-	await Stall.findOneAndUpdate({ _id: ObjectId(req.params.id) }, req.body);
+	await Stall.findOneAndUpdate({ _id: new ObjectId(req.params.id) }, req.body);
 	res.send({ message: "Stall updated." });
 });
 
@@ -284,7 +284,7 @@ app.delete(
 	"/bookings/:id",
 	roleMiddleware(["admin", "super"]),
 	async (req, res) => {
-		await Stall.deleteOne({ _id: ObjectId(req.params.id) });
+		await Stall.deleteOne({ _id: new ObjectId(req.params.id) });
 		res.send({ message: "Stall removed." });
 	}
 );
