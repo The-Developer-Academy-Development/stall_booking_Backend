@@ -230,7 +230,7 @@ app.post("/auth", async (req, res) => {
 app.get("/bookings/:token", async (req, res) => {
 	const currentUser = await User.findOne({ token: req.params.token });
 	if (currentUser) {
-		res.send(await Stall.find({ userId: ObjectId(currentUser._id) }));
+		res.send(await Stall.find({ userId: new ObjectId(currentUser._id) }));
 	}
 });
 
