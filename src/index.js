@@ -134,13 +134,12 @@ app.post("/verify/registration", async (req, res) => {
 			res.send({
 				status: "error",
 				title: "Account creation failed",
-				message: `${field} must contain at least 1 symbol.`,
+				message: `${field} must contain at least 1 number.`,
 			});
 			passed = false;
 		}
 	};
 	checkLength("Username", user.username, 5);
-	checkNums("Username", user.username);
 	checkLength("Password", user.password, 6);
 	checkNums("Password", user.password);
 	if (passed) {
