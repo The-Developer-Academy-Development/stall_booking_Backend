@@ -7,7 +7,7 @@ const stallSchema = mongoose.Schema({
 	email: String,
 	telephone: String,
 	type: String,
-	descripton: String,
+	description: String,
 	comments: String,
 	status: String,
 	pitchNo: String, // Assume we will set -1 to be default (unassigned pitchNo)
