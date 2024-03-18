@@ -341,8 +341,9 @@ app.get(
 
 app.post(
 	"/file",
+	async (req, res) => {
 	res.send("recieved")
-)
+})
 
 //-----------------//
 // Check PitchNo.  //
