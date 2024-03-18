@@ -8,6 +8,8 @@ const morgan = require("morgan");
 const { ObjectId } = require("mongodb");
 const mongoose = require("mongoose");
 const { v4: uuidv4 } = require("uuid");
+const Multer = require ("multer");
+const google = require ("googleapis");
 
 const port = process.env.PORT; // port is now equal to PORT from .env
 const dburi = process.env.DBURI; // dburi is now equal to DBURI from .env
@@ -16,13 +18,11 @@ const dburi = process.env.DBURI; // dburi is now equal to DBURI from .env
 const { User } = require("../models/user");
 const { Stall } = require("../models/stall");
 const e = require("express");
-
-const { createStall } = require("./stallRoutes.js");
 const { createHash } = require("crypto");
-createStall();
+
 
 //Connect to MongoDB
-mongoose.connect(dburi, { useNewUrlParser: true });
+mongoose.connect(dburi);
 
 // Instanciate Express server
 const app = express();
@@ -338,6 +338,33 @@ app.get(
 		);
 	}
 );
+
+//-----------------//
+// file upload.    //
+//-----------------//
+
+const multer = Multer({
+  storage: Multer.diskStorage({
+    destination: function (req, file, callback) {
+      callback(null, `${__dirname}/audio-files`);
+    },
+    filename: function (req, file, callback) {
+      callback(null, file.fieldname + "_" + Date.now() + "_" + file.originalname);
+    },
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
+const authenticateGoogle = () => {
+  const auth = new google.auth.GoogleAuth({
+    keyFile: `/service-account-key-file.json`,
+    scopes: "https://www.googleapis.com/auth/drive",
+  });
+  return auth;
+};
+
 
 app.post(
 	"/file",
