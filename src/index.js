@@ -339,6 +339,11 @@ app.get(
 	}
 );
 
+app.post(
+	"/file",
+	res.send("recieved")
+)
+
 //-----------------//
 // Check PitchNo.  //
 //-----------------//
