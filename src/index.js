@@ -8,6 +8,10 @@ const morgan = require("morgan");
 const { ObjectId } = require("mongodb");
 const mongoose = require("mongoose");
 const { v4: uuidv4 } = require("uuid");
+const Multer = require ("multer");
+const {google} = require ("googleapis");
+const {GoogleAuth} = require('google-auth-library');
+const fs = require('fs');
 
 const port = process.env.PORT; // port is now equal to PORT from .env
 const dburi = process.env.DBURI; // dburi is now equal to DBURI from .env
@@ -16,13 +20,11 @@ const dburi = process.env.DBURI; // dburi is now equal to DBURI from .env
 const { User } = require("../models/user");
 const { Stall } = require("../models/stall");
 const e = require("express");
-
-const { createStall } = require("./stallRoutes.js");
 const { createHash } = require("crypto");
-createStall();
+
 
 //Connect to MongoDB
-mongoose.connect(dburi, { useNewUrlParser: true });
+mongoose.connect(dburi);
 
 // Instanciate Express server
 const app = express();
@@ -339,10 +341,75 @@ app.get(
 	}
 );
 
+//-----------------//
+// file upload.    //
+//-----------------//
+
+const multer = Multer({
+  storage: Multer.diskStorage({
+    destination: function (req, file, callback) {
+      callback(null, ``);
+    },
+    filename: function (req, file, callback) {
+      callback(null, file.fieldname + "_" + Date.now() + "_" + file.originalname);
+    },
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
+const authenticateGoogle = () => {
+  const auth = new GoogleAuth({
+    keyFile: `./src/service-account-key-file.json`,
+    scopes: "https://www.googleapis.com/auth/drive",
+  });
+  return auth;
+};
+
+const uploadToGoogleDrive = async (file, auth) => {
+  const fileMetadata = {
+    name: file.originalname,
+    parents: ["1pHQitQiShjY_f92K7ZlDY_O6iJSqCYgW"], // Change it according to your desired parent folder id
+  };
+
+  const media = {
+    mimeType: file.mimetype,
+    body: fs.createReadStream(file.path),
+  };
+
+  const driveService = google.drive({ version: "v3", auth });
+
+  const response = await driveService.files.create({
+    requestBody: fileMetadata,
+    media: media,
+    fields: "id",
+  });
+  return response;
+};
+
+const deleteFile = (filePath) => {
+  fs.unlink(filePath, () => {
+    console.log("file deleted");
+  });
+};
+
 app.post(
 	"/file",
+	multer.single("file"),
 	async (req, res) => {
-	res.send("recieved");
+		try {
+			if (!req.file) {
+				res.status(200).send("No file uploaded.");
+				return;
+			}
+			const auth = authenticateGoogle();
+			const response = await uploadToGoogleDrive(req.file, auth);
+			deleteFile(req.file.path);
+			res.status(200).json({ response });
+		} catch (err) {
+			console.log(err);
+		}
 });
 
 //-----------------//
