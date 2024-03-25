@@ -12,6 +12,7 @@ const stallSchema = mongoose.Schema({
 	authority: String,
 	status: String,
 	pii: String,
+	pliDate: Date,
 	risk: String,
 	pitchNo: String, // Assume we will set -1 to be default (unassigned pitchNo)
 	date: Number, // Since we'll be working with Epoch time, we'll use the Number type
