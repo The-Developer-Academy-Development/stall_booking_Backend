@@ -394,8 +394,6 @@ const deleteFile = (filePath) => {
   });
 };
 
-
-
 app.post(
 	"/file",
 	multer.single("file"),
