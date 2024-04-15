@@ -10,7 +10,9 @@ const mongoose = require("mongoose");
 const { v4: uuidv4 } = require("uuid");
 const multer = require ("multer");
 const {google} = require ("googleapis");
-const fs = require('fs');
+const fs = require("fs");
+const {nodemailer} = require ("nodemailer");
+const {jwt} = require ("jsonwebtoken");
 
 const port = process.env.PORT; // port is now equal to PORT from .env
 const dburi = process.env.DBURI; // dburi is now equal to DBURI from .env
@@ -339,6 +341,19 @@ app.get(
 		);
 	}
 );
+
+//------------------//
+// Reset Password   //
+//------------------//
+
+router.post("/forgetPassword", async (req, res) => {
+
+});
+
+router.post("/reset-password/:token", async (req, res) => {
+
+});
+
 
 //-----------------//
 // file upload.    //
