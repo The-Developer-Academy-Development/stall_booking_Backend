@@ -10,7 +10,9 @@ const mongoose = require("mongoose");
 const { v4: uuidv4 } = require("uuid");
 const multer = require ("multer");
 const {google} = require ("googleapis");
-const fs = require('fs');
+const fs = require("fs");
+const nodemailer = require ("nodemailer");
+const jwt = require ("jsonwebtoken");
 
 const port = process.env.PORT; // port is now equal to PORT from .env
 const dburi = process.env.DBURI; // dburi is now equal to DBURI from .env
@@ -339,6 +341,142 @@ app.get(
 		);
 	}
 );
+
+//------------------//
+// Reset Password   //
+//------------------//
+
+app.post("/forgetPassword", async (req, res) => {
+console.log(req.body)
+	try {
+    // Find the user by email
+    const user = await User.findOne({ email: req.body.email });
+
+    // If user not found, send error message
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    // Generate a unique JWT token for the user that contains the user's id
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET_KEY, {expiresIn: "10m",});
+    
+    // Send the token to the user's email
+    const transporter = nodemailer.createTransport({
+			host: "smtp.ionos.co.uk",
+			port: 587,
+			secure: false, 
+			auth: {
+				user: process.env.EMAIL,
+				pass: process.env.PASSWORD_APP_EMAIL,
+			},
+			tls: {
+        ciphers:'SSLv3'
+    	},
+			from: process.env.EMAIL,
+		});
+
+    // Email configuration
+    const mailOptions = {
+      from: 'Stannington Carnival Password Reset <info@stanningtoncarnival.co.uk>',
+      to: req.body.email,
+      subject: "Reset Password",
+			text: 'this email was sent to allow a password reset',
+      html: `<h1>Reset Your Password</h1>
+    <p>Click on the following link to reset your password:</p>
+    <a href="http://localhost:3000/#/reset/${token}">http://localhost:3000/#/reset/${token}</a>
+    <p>The link will expire in 10 minutes.</p>
+    <p>If you didn't request a password reset, please ignore this email.</p>`,
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+				console.log(token)
+        return res.status(500).send({ message: err.message });
+      }
+      res.status(200).send({ message: "Email sent" });
+    });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+});
+
+app.post("/reset-password/:token", async (req, res) => {
+	
+	try {
+      	// Verify the token sent by the user
+				const decodedToken = jwt.verify(
+          req.params.token,
+          process.env.JWT_SECRET_KEY
+        );
+				// If the token is invalid, return an error
+			  if (!decodedToken) {
+					return res.status(401).send({ 
+						status: "error",
+				    title: "Invalid Token",
+				    message: "The password reset token is invalid, if you wish to reset your password please send a new request"
+					});
+				}
+			
+				// find the user with the id from the token
+				const user = await User.findOne({ _id: decodedToken.userId });
+				
+				if (!user) {
+					return res.status(401).send({ 
+						status: "error",
+					  title: "Password reset failed",
+					  message: "no user found, if you wish to reset your password please send a new request" });
+				};
+
+				// check password meets criteria.
+				// TODO refactor to seperate function used also in regestration
+		   	let passed = true;
+		   	const checkLength = (field, str, len) => {
+			   if ((passed && str === undefined) || (passed && str.length < len)) {
+					passed = false;
+			    return res.send({
+				   status: "error",
+				   title: "Account creation failed",
+				   message: `${field} must be at least ${len} characters in length.`,
+			   	});
+		     }
+	     };
+	     const checkNums = (field, str) => {
+		    if (passed && !/\d/.test(str)) {
+					passed = false;
+			  	return res.send({
+				  	status: "error",
+				  	title: "Account creation failed",
+				  	message: `${field} must contain at least 1 number.`,
+			  	});
+		    }
+	     };
+			 
+       checkLength("Password", req.body.password, 6);
+	     checkNums("Password", req.body.password);
+	     if (passed) {
+        // Hash the new password
+        req.body.password = createHash("sha3-256")
+					.update(req.body.password)
+					.digest("hex");
+
+        // Update user's password, clear reset token and expiration time
+        user.password = req.body.password;
+        await user.save();
+
+        // Send success response
+        res.status(200).send({
+			   status: "success",
+			   title: "Password Reset",
+			   message: "Password reset was successful, you can now login.",
+		    });
+			}
+  } catch (err) {
+    // Send error response if any error occurs
+    res.status(500).send({ message: err.message });
+  }
+});
+
 
 //-----------------//
 // file upload.    //
