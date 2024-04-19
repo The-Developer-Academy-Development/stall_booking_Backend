@@ -347,7 +347,7 @@ app.get(
 //------------------//
 
 app.post("/forgetPassword", async (req, res) => {
-
+console.log(req.body)
 	try {
     // Find the user by email
     const user = await User.findOne({ email: req.body.email });
@@ -383,7 +383,7 @@ app.post("/forgetPassword", async (req, res) => {
 			text: 'this email was sent to allow a password reset',
       html: `<h1>Reset Your Password</h1>
     <p>Click on the following link to reset your password:</p>
-    <a href="http://localhost:3000/reset-password/${token}">http://localhost:3000/reset-password/${token}</a>
+    <a href="http://localhost:3000/#/reset/${token}">http://localhost:3000/#/reset/${token}</a>
     <p>The link will expire in 10 minutes.</p>
     <p>If you didn't request a password reset, please ignore this email.</p>`,
     };
@@ -402,34 +402,80 @@ app.post("/forgetPassword", async (req, res) => {
 });
 
 app.post("/reset-password/:token", async (req, res) => {
+	
 	try {
-    // Verify the token sent by the user
-    const decodedToken = jwt.verify(
-      req.params.token,
-      process.env.JWT_SECRET_KEY
-    );
+		console.log(req.params.token);
+      	// Verify the token sent by the user
+				const decodedToken = jwt.verify(
+          req.params.token,
+          process.env.JWT_SECRET_KEY
+        );
+				console.log(decodedToken);
+				// If the token is invalid, return an error
+			  if (!decodedToken) {
+					return res.status(401).send({ 
+						status: "error",
+				    title: "Invalid Token",
+				    message: "The password reset token is invalid, if you wish to reset your password please send a new request"
+					});
+				}
+			
+				// find the user with the id from the token
+				const user = await User.findOne({ _id: decodedToken.userId });
+				
+				if (!user) {
+					return res.status(401).send({ 
+						status: "error",
+					  title: "Password reset failed",
+					  message: "no user found, if you wish to reset your password please send a new request" });
+				};
 
-    // If the token is invalid, return an error
-    if (!decodedToken) {
-      return res.status(401).send({ message: "Invalid token" });
-    }
+				// check password meets criteria.
+				// TODO refactor to seperate function used also in regestration
+		   	let passed = true;
+		   	const checkLength = (field, str, len) => {
+			   if ((passed && str === undefined) || (passed && str.length < len)) {
+					passed = false;
+			    return res.send({
+				   status: "error",
+				   title: "Account creation failed",
+				   message: `${field} must be at least ${len} characters in length.`,
+			   	});
+		     }
+	     };
+	     const checkNums = (field, str) => {
+		    if (passed && !/\d/.test(str)) {
+					passed = false;
+			  	return res.send({
+				  	status: "error",
+				  	title: "Account creation failed",
+				  	message: `${field} must contain at least 1 number.`,
+			  	});
+		    }
+	     };
+			 
+       checkLength("Password", req.body.password, 6);
+	     checkNums("Password", req.body.password);
+			 console.log(req.body, passed);
+	     if (passed) {
+        // Hash the new password
+				console.log("encrypt");
+        req.body.password = createHash("sha3-256")
+					.update(req.body.password)
+					.digest("hex");
+				console.log(req.body.password)
 
-    // find the user with the id from the token
-    const user = await User.findOne({ _id: decodedToken.userId });
-    if (!user) {
-      return res.status(401).send({ message: "no user found" });
-    }
-    
-    // Hash the new password
-    const salt = await bycrypt.genSalt(10);
-    req.body.newPassword = await bycrypt.hash(req.body.newPassword, salt);
+        // Update user's password, clear reset token and expiration time
+        user.password = req.body.password;
+        await user.save();
 
-    // Update user's password, clear reset token and expiration time
-    user.password = req.body.newPassword;
-    await user.save();
-
-    // Send success response
-    res.status(200).send({ message: "Password updated" });
+        // Send success response
+        res.status(200).send({
+			   status: "success",
+			   title: "Password Reset",
+			   message: "Password reset was successful, you can now login.",
+		    });
+			}
   } catch (err) {
     // Send error response if any error occurs
     res.status(500).send({ message: err.message });
