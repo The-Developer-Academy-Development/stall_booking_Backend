@@ -404,13 +404,11 @@ console.log(req.body)
 app.post("/reset-password/:token", async (req, res) => {
 	
 	try {
-		console.log(req.params.token);
       	// Verify the token sent by the user
 				const decodedToken = jwt.verify(
           req.params.token,
           process.env.JWT_SECRET_KEY
         );
-				console.log(decodedToken);
 				// If the token is invalid, return an error
 			  if (!decodedToken) {
 					return res.status(401).send({ 
@@ -456,14 +454,11 @@ app.post("/reset-password/:token", async (req, res) => {
 			 
        checkLength("Password", req.body.password, 6);
 	     checkNums("Password", req.body.password);
-			 console.log(req.body, passed);
 	     if (passed) {
         // Hash the new password
-				console.log("encrypt");
         req.body.password = createHash("sha3-256")
 					.update(req.body.password)
 					.digest("hex");
-				console.log(req.body.password)
 
         // Update user's password, clear reset token and expiration time
         user.password = req.body.password;
